@@ -22,10 +22,17 @@
       let interval = null;
       let player;
       let ticking = false;
+      let paused = false;
+      let muted = false;
+      let lastPaused = false;
+      let lastMuted = false;
       const btn = document.getElementById('countdown-btn');
       function updateBtn() {
+        let reason = '';
+        if (paused) reason = ' (Video paused)';
+        else if (muted) reason = ' (Video muted)';
         if (countdown > 0) {
-          btn.textContent = `Please wait ${countdown} second${countdown === 1 ? '' : 's'}...`;
+          btn.textContent = `Please wait ${countdown} second${countdown === 1 ? '' : 's'}...${reason}`;
         } else {
           btn.textContent = 'Get me out of here!';
           btn.disabled = false;
@@ -39,7 +46,7 @@
         if (countdown === 0) window.location.href = '/freedom';
       });
       function tick() {
-        if (countdown > 0) {
+        if (countdown > 0 && !paused && !muted) {
           countdown--;
           updateBtn();
         }
@@ -48,19 +55,41 @@
           interval = null;
         }
       }
+      function checkMuteState() {
+        if (player && typeof player.isMuted === 'function') {
+          muted = player.isMuted();
+          if (muted && !lastMuted && countdown > 0) {
+            countdown += 5;
+          }
+          lastMuted = muted;
+          updateBtn();
+        }
+      }
       function onPlayerStateChange(event) {
         // 1 = playing, 2 = paused
-        if (event.data === 1 && countdown > 0 && !interval) {
+        paused = (event.data === 2);
+        if (paused && !lastPaused && countdown > 0) {
+          countdown += 5;
+        }
+        lastPaused = paused;
+        checkMuteState();
+        if (event.data === 1 && countdown > 0 && !interval && !muted) {
           interval = setInterval(tick, 1000);
-        } else if (event.data === 2 && interval) {
+        } else if ((event.data === 2 || muted) && interval) {
           clearInterval(interval);
           interval = null;
         }
+        updateBtn();
+      }
+      function onPlayerReady(event) {
+        checkMuteState();
+        setInterval(checkMuteState, 300); // Poll mute state every 300ms
       }
       function onYouTubeIframeAPIReady() {
         player = new YT.Player('enlighten-video', {
           events: {
-            'onStateChange': onPlayerStateChange
+            'onStateChange': onPlayerStateChange,
+            'onReady': onPlayerReady
           }
         });
       }
