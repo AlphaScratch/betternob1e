@@ -12,7 +12,64 @@
   <body>
     <div class="video-container">
       <h1 style="color:#3730a3; font-size:2.2em; margin-bottom:0.5em;">Your Enlightenment Awaits</h1>
-      <iframe width="560" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      <iframe id="enlighten-video" width="560" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&enablejsapi=1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      <div style="margin-top:2em;">
+        <button id="countdown-btn" style="font-size:1.3em; padding:0.8em 2em; background:#6366f1; color:white; border:none; border-radius:0.6em; font-weight:bold; cursor:not-allowed; opacity:0.7; transition:opacity 0.2s;">Please wait 10 seconds...</button>
+      </div>
     </div>
+    <script>
+      let countdown = 10;
+      let interval = null;
+      let player;
+      let ticking = false;
+      const btn = document.getElementById('countdown-btn');
+      function updateBtn() {
+        if (countdown > 0) {
+          btn.textContent = `Please wait ${countdown} second${countdown === 1 ? '' : 's'}...`;
+        } else {
+          btn.textContent = 'Get me out of here!';
+          btn.disabled = false;
+          btn.style.cursor = 'pointer';
+          btn.style.opacity = '1';
+        }
+      }
+      btn.disabled = true;
+      updateBtn();
+      btn.addEventListener('click', function() {
+        if (countdown === 0) window.location.href = '/';
+      });
+      function tick() {
+        if (countdown > 0) {
+          countdown--;
+          updateBtn();
+        }
+        if (countdown === 0 && interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      }
+      function onPlayerStateChange(event) {
+        // 1 = playing, 2 = paused
+        if (event.data === 1 && countdown > 0 && !interval) {
+          interval = setInterval(tick, 1000);
+        } else if (event.data === 2 && interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      }
+      function onYouTubeIframeAPIReady() {
+        player = new YT.Player('enlighten-video', {
+          events: {
+            'onStateChange': onPlayerStateChange
+          }
+        });
+      }
+      // Load YouTube IFrame API
+      var tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      var firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+      window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+    </script>
   </body>
 </html>
